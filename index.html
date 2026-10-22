@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>社説 語彙学習＆学習レポート作成ツール (B4縦書き版)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDMincho:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #d1d5db;
+      --paper-bg: #ffffff;
+      --text-color: #111827;
+      --border-color: #6b7280;
+      --primary-color: #1e3a8a;
+      --accent-color: #2563eb;
+      --font-family-serif: 'BIZ UDMincho', "Hiragino Mincho ProN", "Yu Mincho", serif;
+      --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: var(--font-family-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden; 
+      overflow-y: hidden;
+    }
+
+    /* 画面上部操作ヘッダー */
+    header.no-print {
+      width: 100%;
+      background-color: var(--primary-color);
+      color: #fff;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      margin-bottom: 0px; 
+      z-index: 100;
+      flex-shrink: 0;
+      flex-wrap: wrap; 
+      gap: 10px;
+    }
+
+    header h1 {
+      font-size: 1.1rem;
+      font-weight: normal;
+      white-space: nowrap;
+    }
+
+    .header-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .editorial-links {
+      display: flex;
+      gap: 8px;
+      list-style: none;
+      font-size: 0.8rem;
+    }
+
+    .editorial-links a {
+      color: #e0f2fe;
+      text-decoration: none;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background-color: rgba(255, 255, 255, 0.15);
+      cursor: pointer;
+    }
+
+    .editorial-links a:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .btn {
+      padding: 6px 10px;
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.80rem;
+      font-weight: bold;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover:not(:disabled) {
+      opacity: 0.85;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-green { background-color: #059669; }
+    .btn-red { background-color: #ef4444; }
+    .btn-gray { background-color: #6b7280; }
+    .btn-purple { background-color: #8b5cf6; }
+    .btn-blue { background-color: #3b82f6; }
+
+    /* マーカーの見た目 */
+    .marker-highlight {
+      background-color: #fef08a !important; /* 蛍光イエロー */
+      border-radius: 2px;
+      cursor: pointer;
+    }
+
+    /* 社説入力モーダルオーバーレイ */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.65);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    .modal-content {
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 8px;
+      width: 680px;
+      max-width: 90vw;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .modal-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .modal-content h3 {
+      font-size: 1.1rem;
+      color: var(--primary-color);
+      font-family: var(--font-family-sans);
+    }
+
+    .modal-char-count {
+      font-size: 0.88rem;
+      color: #4b5563;
+      font-weight: bold;
+    }
+
+    textarea#modal-article-input {
+      width: 100%;
+      height: 260px;
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-family: var(--font-family-serif);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      resize: vertical;
+      outline: none;
+    }
+
+    textarea#modal-article-input:focus {
+      border-color: var(--primary-color);
+    }
+
+    /* レポート用紙用ラッパー（常に中央揃え） */
+    .sheet-wrapper {
+      width: 100%;
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 15px; 
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    /* B4ヨコ レポート用紙本体 */
+    .report-sheet {
+      background-color: var(--paper-bg);
+      width: 364mm;
+      height: 257mm;
+      padding: 12mm 14mm;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    /* レポートヘッダー（タイトル＆氏名） */
+    .report-header {
+      border-bottom: 2px solid var(--text-color);
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .report-title-input {
+      font-family: var(--font-family-serif);
+      font-size: 1.4rem;
+      font-weight: bold;
+      border: none;
+      outline: none;
+      width: 50%;
+      background: transparent;
+    }
+
+    .report-meta {
+      display: flex;
+      gap: 20px;
+      font-size: 0.9rem;
+      font-family: var(--font-family-serif);
+    }
+
+    .report-meta input {
+      border: none;
+      border-bottom: 1px solid var(--border-color);
+      outline: none;
+      padding: 2px 6px;
+      font-size: 0.9rem;
+      font-family: var(--font-family-serif);
+      background: transparent;
+    }
+
+    /* レポートメインコンテナ (左右2分割) */
+    .report-body {
+      flex: 1;
+      display: flex;
+      gap: 16px;
+      height: calc(100% - 45px);
+      overflow: hidden;
+    }
+
+    /* 左側エリア (54%) */
+    .left-section {
+      width: 54%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: 100%;
+    }
+
+    /* 上段・中段：調べた言葉とその意味 */
+    .vocab-box {
+      flex: 1.4;
+      border: 1.5px solid var(--text-color);
+      border-radius: 4px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      background-color: #fafafa;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .box-title-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+    }
+
+    .box-title {
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+
+    .vocab-search-mini.no-print {
+      display: flex;
+      gap: 4px;
+    }
+
+    .vocab-search-mini input {
+      padding: 2px 6px;
+      font-size: 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: 3px;
+      width: 120px;
+    }
+
+    /* 語句リスト本体 */
+    .vocab-list-vertical {
+      flex: 1;
+      display: flex;
+      flex-direction: row-reverse;
+      gap: 6px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      align-items: stretch;
+      padding-bottom: 4px;
+      height: calc(100% - 30px);
+    }
+
+    /* 意味カード */
+    .vocab-item-v {
+      writing-mode: vertical-rl;
+      -webkit-writing-mode: vertical-rl;
+      font-family: var(--font-family-serif);
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      border-radius: 3px;
+      padding: 4px 2px;
+      width: auto;
+      min-width: 24px;
+      max-width: none;
+      height: 100%;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 1px 1px 3px rgba(0,0,0,0.05);
+      position: relative;
+      transition: width 0.15s ease;
+    }
+
+    .vocab-item-v-word {
+      font-weight: bold;
+      color: var(--primary-color);
+      border-left: 2px solid var(--primary-color);
+      padding-left: 2px;
+      margin-left: 0px;
+      font-size: 0.90rem;
+      letter-spacing: 0.01em;
+    }
+
+    .vocab-item-v-desc {
+      font-size: 0.80rem;
+      color: #374151;
+      overflow: visible;
+      margin-top: 2px;
+      flex: 1;
+      display: flex;
+      height: 100%;
+      width: auto;
+    }
+
+    /* 手打ち・自動挿入用縦書きテキストエリア */
+    .vertical-manual-input {
+      height: 100%;
+      border: 1px dashed var(--border-color);
+      border-radius: 3px;
+      outline: none;
+      resize: none;
+      writing-mode: vertical-rl;
+      -webkit-writing-mode: vertical-rl;
+      font-family: var(--font-family-serif);
+      font-size: 0.80rem;
+      line-height: 1.35;
+      background: #fffdfa;
+      padding: 1px;
+      color: var(--text-color);
+      min-width: 16px;
+      transition: width 0.15s ease;
+      overflow: hidden;
+    }
+
+    .vertical-manual-input:focus {
+      border-color: var(--primary-color);
+      background: #ffffff;
+    }
+
+    .delete-vocab-btn-v {
+      position: absolute;
+      bottom: 2px;
+      left: 2px;
+      color: #ef4444;
+      cursor: pointer;
+      font-size: 0.65rem;
+      border: none;
+      background: none;
+      writing-mode: horizontal-tb;
+    }
+
+    .empty-msg-right {
+      color: #9ca3af;
+      font-size: 0.85rem;
+      text-align: right;
+      margin-left: auto;
+      margin-top: 10px;
+      line-height: 1.6;
+    }
+
+    /* 下段：意見 ＆ 要約 */
+    .bottom-inputs-box {
+      flex: 1;
+      display: flex;
+      gap: 10px;
+    }
+
+    .opinion-box {
+      flex: 1.0;
+      border: 1.5px solid var(--text-color);
+      border-radius: 4px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      background-color: #ffffff;
+    }
+
+    .summary-box {
+      flex: 1.8;
+      border: 1.5px solid var(--text-color);
+      border-radius: 4px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      background-color: #ffffff;
+    }
+
+    .vertical-textarea {
+      width: 100%;
+      flex: 1;
+      border: none;
+      outline: none;
+      resize: none;
+      writing-mode: vertical-rl;
+      -webkit-writing-mode: vertical-rl;
+      font-family: var(--font-family-serif);
+      font-size: 0.88rem;
+      line-height: 1.8;
+      letter-spacing: 0.04em;
+      background: transparent;
+      padding: 4px;
+    }
+
+    /* 右側エリア：社説本文 (46%) */
+    .right-section {
+      width: 46%;
+      border: 1.5px solid var(--text-color);
+      border-radius: 4px;
+      padding: 12px;
+      background-color: #ffffff;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* 限界ギリギリまで自動フィッティングする縦書き3段組み */
+    .vertical-3col-container {
+      writing-mode: vertical-rl;
+      -webkit-writing-mode: vertical-rl;
+      column-count: 3;
+      column-gap: 1.2em;
+      column-rule: 1px dashed var(--border-color);
+      height: 100%;
+      width: 100%;
+      font-family: var(--font-family-serif);
+      font-size: 0.82rem;
+      line-height: 1.5;
+      letter-spacing: 0.01em;
+      color: #111827;
+      user-select: text;
+    }
+
+    .vertical-3col-container p {
+      margin-left: 0.25em;
+      text-indent: 1em;
+      text-align: justify;
+    }
+
+    /* 印刷・PDF出力用CSS設定（B4ヨコ強制設定） */
+    @page {
+      size: B4 landscape;
+      margin: 0;
+    }
+
+    @media print {
+      html, body {
+        width: 364mm;
+        height: 257mm;
+        background: white;
+        padding: 0;
+        margin: 0;
+        overflow: visible;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      .sheet-wrapper {
+        padding: 0;
+        margin: 0;
+        display: block;
+        overflow: visible;
+        width: 364mm;
+        height: 257mm;
+      }
+
+      .report-sheet {
+        width: 364mm;
+        height: 257mm;
+        box-shadow: none;
+        padding: 10mm 12mm;
+        page-break-after: always;
+        transform: none !important;
+        margin: 0 !important;
+      }
+
+      .vocab-list-vertical {
+        overflow-x: visible;
+      }
+
+      .right-section {
+        overflow: hidden;
+      }
+
+      input, textarea {
+        border: none !important;
+      }
+
+      .vertical-manual-input {
+        border: none !important;
+        background: transparent !important;
+      }
+
+      .delete-vocab-btn-v {
+        display: none !important;
+      }
+
+      .marker-highlight {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 操作用ヘッダー -->
+  <header class="no-print">
+    <h1>社説 語彙学習＆レポートツール (B4縦書き版)</h1>
+    <div class="header-controls">
+      <ul class="editorial-links">
+        <li><a id="link-sankei">産経</a></li>
+        <li><a id="link-yomiuri">読売</a></li>
+        <li><a id="link-asahi">朝日</a></li>
+        <li><a id="link-mainichi">毎日</a></li>
+      </ul>
+      
+      <!-- 白紙に戻すボタン -->
+      <button class="btn btn-red" id="btn-clear-article" type="button">白紙に戻す</button>
+
+      <!-- マーカー切り替えボタン -->
+      <button class="btn" id="toggle-marker-btn" type="button" style="background-color: #eab308; color: #fff; margin-left: 5px;">🖍 マーカー: OFF</button>
+      
+      <button class="btn" id="open-modal-btn" type="button" style="margin-left: 5px;">本文入力</button>
+      
+      <button class="btn btn-blue" id="btn-export-pdf" type="button">PDF・印刷</button>
+    </div>
+  </header>
+
+  <!-- 社説入力用モーダル -->
+  <div id="modal-overlay" class="modal-overlay no-print">
+    <div class="modal-content">
+      <div class="modal-header-row">
+        <h3>新聞の社説本文を貼り付け（最大1,300文字程度まで対応）</h3>
+        <div id="modal-char-count" class="modal-char-count">文字数: 0 / 1,300文字</div>
+      </div>
+      <textarea id="modal-article-input" placeholder="ここに新聞の社説本文を貼り付けてください..."></textarea>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="btn" id="close-modal-btn" type="button" style="background-color: #6b7280;">キャンセル</button>
+        <button class="btn" id="apply-article-btn" type="button">レポートに反映</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- B4ヨコ レポート用紙ラッパー -->
+  <div class="sheet-wrapper">
+    <div class="report-sheet">
+      
+      <!-- レポートヘッダー -->
+      <div class="report-header">
+        <input type="text" class="report-title-input" value="社説読解・語彙学習レポート" placeholder="レポートタイトル">
+        <div class="report-meta">
+          <label>組・番号: <input type="text" id="report-class" style="width: 70px;" placeholder="1年1組"></label>
+          <label>氏名: <input type="text" id="report-name" style="width: 130px;" placeholder="山田 太郎"></label>
+          <label>日付: <input type="text" id="report-date" style="width: 100px;"></label>
+        </div>
+      </div>
+
+      <!-- レポートメインボディ -->
+      <div class="report-body">
+
+        <!-- 左側：語彙リスト ＆ 意見・要約 -->
+        <div class="left-section">
+          
+          <!-- 上段・中段：調べた言葉とその意味 -->
+          <div class="vocab-box">
+            <div class="box-title-bar">
+              <span class="box-title">📚 調べた言葉とその意味（語彙メモ）</span>
+              <div class="vocab-search-mini no-print">
+                <input type="text" id="manual-word-input" placeholder="言葉を直接検索">
+                <button class="btn" id="manual-search-btn" type="button" style="padding: 2px 6px; font-size: 0.75rem;">追加</button>
+              </div>
+            </div>
+
+            <div id="vocab-list" class="vocab-list-vertical">
+              <div class="empty-msg-right" id="empty-vocab-msg">
+                右の記事から言葉をドラッグ選択すると、<br>ここに縦書きで自動蓄積されます。
+              </div>
+            </div>
+          </div>
+
+          <!-- 下段：意見 ＆ 要約 -->
+          <div class="bottom-inputs-box">
+            <!-- 意見・感想枠（左側：コンパクト） -->
+            <div class="opinion-box">
+              <div class="box-title" style="margin-bottom: 4px;">💡 自分の意見・考え</div>
+              <textarea class="vertical-textarea" placeholder="自分の考えや理由を書きましょう（縦書き入力）..."></textarea>
+            </div>
+            <!-- 要約枠（右側：広い） -->
+            <div class="summary-box">
+              <div class="box-title" style="margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                <span>✏️ 記事の要約</span>
+                <!-- AI要約ボタン -->
+                <button class="btn btn-purple no-print" id="btn-ai-summary" type="button" style="padding: 2px 6px; font-size: 0.70rem;">✨ AI要約</button>
+              </div>
+              <div style="flex: 1; display: flex; flex-direction: row-reverse; width: 100%;">
+                <textarea id="summary-textarea" class="vertical-textarea" placeholder="社説の要点を短くまとめましょう（縦書き入力）..."></textarea>
+                <div id="ai-summary-label" style="display: none; writing-mode: vertical-rl; -webkit-writing-mode: vertical-rl; font-family: var(--font-family-serif); font-size: 0.88rem; color: #4b5563; padding-top: 4px; padding-right: 6px; user-select: none;">（AIによる要約）</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 右側エリア：社説本文（初期状態で3カラム全てに区切り線が表示されるよう構成） -->
+        <div class="right-section">
+          <div id="vertical-article-container" class="vertical-3col-container">
+            <p>「本文入力」ボタンを押して、ここに新聞社説の本文を貼り付けてください。</p>
+            <p style="break-before: column; opacity: 0; user-select: none;">&#8203;</p>
+            <p style="break-before: column; opacity: 0; user-select: none;">&#8203;</p>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // 定数：初期案内用HTML（3カラム全てに区切り線を維持させるための構造）
+    const DEFAULT_ARTICLE_HTML = `<p>「本文入力」ボタンを押して、ここに新聞社説の本文を貼り付けてください。</p><p style="break-before: column; opacity: 0; user-select: none;">&#8203;</p><p style="break-before: column; opacity: 0; user-select: none;">&#8203;</p>`;
+
+    // --- PDF出力時のファイル名自動設定 ---
+    function exportPDF() {
+      const originalTitle = document.title;
+      
+      const dateVal = document.getElementById('report-date').value.replace(/\//g, '') || '日付未定';
+      const classVal = document.getElementById('report-class').value || '組未定';
+      const nameVal = document.getElementById('report-name').value || '名前未定';
+      
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const timeVal = `${hours}${minutes}`;
+      
+      const fileName = `${dateVal} ${classVal} ${nameVal} ${timeVal}`;
+      document.title = fileName;
+      
+      setTimeout(() => {
+        window.print();
+        setTimeout(() => {
+          document.title = originalTitle;
+        }, 1000);
+      }, 100);
+    }
+
+    // --- 全ての枠を初期化して白紙に戻す機能 ---
+    function clearArticleAll() {
+      if (!confirm("入力した内容をすべて白紙に戻しますか？\n（記事、語句、意見、要約がすべて消去されます）")) return;
+      
+      // 1. 本文をリセット
+      const container = document.getElementById('vertical-article-container');
+      if (container) {
+        container.innerHTML = DEFAULT_ARTICLE_HTML;
+        adjustArticleFontSize();
+      }
+
+      // 2. 語句検索枠をリセット
+      const manualWordInput = document.getElementById('manual-word-input');
+      if (manualWordInput) manualWordInput.value = '';
+
+      // 3. 語彙リストをリセット
+      const vocabList = document.getElementById('vocab-list');
+      if (vocabList) {
+        vocabList.innerHTML = `<div class="empty-msg-right" id="empty-vocab-msg">
+            右の記事から言葉をドラッグ選択すると、<br>ここに縦書きで自動蓄積されます。
+          </div>`;
+      }
+
+      // 4. 意見枠をリセット
+      const opinionTextarea = document.querySelector('.opinion-box .vertical-textarea');
+      if (opinionTextarea) opinionTextarea.value = '';
+
+      // 5. 要約枠をリセット
+      const summaryTextarea = document.getElementById('summary-textarea');
+      if (summaryTextarea) summaryTextarea.value = '';
+
+      // 6. AI要約ラベルをリセット
+      const aiSummaryLabel = document.getElementById('ai-summary-label');
+      if (aiSummaryLabel) aiSummaryLabel.style.display = 'none';
+    }
+
+    // --- 自動要約（抽出型疑似AI）システム ---
+    function generateAISummary() {
+      const container = document.getElementById('vertical-article-container');
+      const summaryTextarea = document.getElementById('summary-textarea');
+      const aiSummaryLabel = document.getElementById('ai-summary-label');
+      
+      if (!container || !summaryTextarea) return;
+
+      const rawText = container.innerText.replace(/\n/g, '').replace(/\u200B/g, '').trim();
+      
+      if (rawText.includes('「本文入力」ボタンを押して') || rawText.length < 100) {
+        alert('要約できる十分な長さの本文がありません。先に社説を貼り付けてください。');
+        return;
+      }
+
+      const sentences = rawText.match(/[^。！？]+[。！？]?/g) || [];
+      if (sentences.length <= 3) {
+        summaryTextarea.value = rawText;
+        if (aiSummaryLabel) aiSummaryLabel.style.display = 'block';
+        return;
+      }
+
+      let summary = sentences[0]; 
+      let currentLen = summary.length;
+      
+      const endSentences = [];
+      for (let i = sentences.length - 1; i >= 1; i--) {
+        const s = sentences[i].replace(/^\s+/, '');
+        if (currentLen + s.length > 210 && endSentences.length > 0) break;
+        endSentences.unshift(s);
+        currentLen += s.length;
+      }
+
+      summary += "\n" + endSentences.join('');
+      summaryTextarea.value = summary.trim();
+      
+      // 編集不可のAIラベルを表示
+      if (aiSummaryLabel) aiSummaryLabel.style.display = 'block';
+    }
+
+    // --- 画面サイズに合わせてB4用紙を自動ズームする機能 ---
+    function fitScreen() {
+      const sheet = document.querySelector('.report-sheet');
+      const header = document.querySelector('header');
+      if (!sheet || !header) return;
+
+      sheet.style.transform = 'none';
+      sheet.style.marginBottom = '0';
+      sheet.style.marginRight = '0';
+      
+      const availableHeight = window.innerHeight - header.offsetHeight - 30; 
+      const availableWidth = window.innerWidth - 30; 
+      
+      const sheetHeight = sheet.offsetHeight; 
+      const sheetWidth = sheet.offsetWidth;   
+      
+      if (sheetHeight === 0 || sheetWidth === 0) return;
+
+      const scaleH = availableHeight / sheetHeight;
+      const scaleW = availableWidth / sheetWidth;
+      const scale = Math.min(scaleH, scaleW);
+      const finalScale = Math.min(scale, 1.0);
+
+      sheet.style.transformOrigin = 'top left';
+      sheet.style.transform = `scale(${finalScale})`;
+      
+      const diffH = sheetHeight * (1 - finalScale);
+      const diffW = sheetWidth * (1 - finalScale);
+      sheet.style.marginBottom = `-${diffH}px`;
+      sheet.style.marginRight = `-${diffW}px`;
+    }
+
+    // --- マーカーモードの切り替え制御 ---
+    let isMarkerMode = false;
+    
+    function toggleMarkerMode() {
+      isMarkerMode = !isMarkerMode;
+      const btn = document.getElementById('toggle-marker-btn');
+      if (isMarkerMode) {
+        btn.textContent = '🖍 マーカー: ON';
+        btn.style.backgroundColor = '#d97706'; 
+      } else {
+        btn.textContent = '🖍 マーカー: OFF';
+        btn.style.backgroundColor = '#eab308'; 
+      }
+    }
+
+    function openEditorialWindow(url) {
+      const width = 850;
+      const height = 720;
+      const left = Math.max(0, (window.screen.width - width) / 2);
+      const top = Math.max(0, (window.screen.height - height) / 2);
+      window.open(url, 'editorialWindow', `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`);
+    }
+
+    function openModal() {
+      const overlay = document.getElementById('modal-overlay');
+      const input = document.getElementById('modal-article-input');
+      if (overlay) {
+        overlay.style.display = 'flex';
+        updateCharCount();
+        if (input) input.focus();
+      }
+    }
+
+    function closeModal() {
+      const overlay = document.getElementById('modal-overlay');
+      if (overlay) {
+        overlay.style.display = 'none';
+      }
+    }
+
+    function handleOverlayClick(e) {
+      if (e.target.id === 'modal-overlay') closeModal();
+    }
+
+    function updateCharCount() {
+      const modalArticleInput = document.getElementById('modal-article-input');
+      const modalCharCount = document.getElementById('modal-char-count');
+      if (modalArticleInput && modalCharCount) {
+        const count = modalArticleInput.value.length;
+        modalCharCount.textContent = `文字数: ${count.toLocaleString()} / 1,300文字`;
+        if (count > 1300) {
+          modalCharCount.style.color = '#dc2626';
+        } else {
+          modalCharCount.style.color = '#4b5563';
+        }
+      }
+    }
+
+    function applyArticle() {
+      const modalArticleInput = document.getElementById('modal-article-input');
+      const verticalArticleContainer = document.getElementById('vertical-article-container');
+      const text = modalArticleInput ? modalArticleInput.value.trim() : '';
+
+      if (!text) {
+        alert('テキストを入力してください。');
+        return;
+      }
+
+      const paragraphs = text.split('\n').filter(line => line.trim() !== '');
+
+      if (verticalArticleContainer) {
+        verticalArticleContainer.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+      }
+      
+      closeModal();
+      fitScreen();
+      adjustArticleFontSize();
+    }
+
+    function handleManualSearch() {
+      const manualWordInput = document.getElementById('manual-word-input');
+      const word = manualWordInput ? manualWordInput.value.trim() : '';
+      if (word) {
+        addWordToVocabList(word);
+        manualWordInput.value = '';
+      }
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+    }
+
+    function adjustArticleFontSize() {
+      const container = document.getElementById('vertical-article-container');
+      if (!container || container.clientWidth === 0) return;
+
+      const rawText = container.innerText || '';
+      if (!rawText.trim()) return;
+
+      const paragraphs = container.querySelectorAll('p');
+      if (paragraphs.length === 0) return;
+      
+      const lastP = paragraphs[paragraphs.length - 1];
+
+      let endMarker = document.getElementById('overflow-marker');
+      if (!endMarker) {
+        endMarker = document.createElement('span');
+        endMarker.id = 'overflow-marker';
+        endMarker.style.display = 'inline-block';
+        endMarker.style.width = '1px';
+        endMarker.style.height = '1px';
+        lastP.appendChild(endMarker);
+      }
+
+      let minFont = 0.20; 
+      let maxFont = 1.05;
+      let bestFont = minFont;
+
+      const containerRect = container.getBoundingClientRect();
+
+      for (let i = 0; i < 20; i++) {
+        const midFont = (minFont + maxFont) / 2;
+        container.style.fontSize = `${midFont}rem`;
+        container.style.lineHeight = '1.48';
+
+        let isOverflowing = false;
+
+        if (container.scrollWidth > container.clientWidth + 2) {
+          isOverflowing = true;
+        }
+
+        if (!isOverflowing) {
+          const markerRect = endMarker.getBoundingClientRect();
+          if (markerRect.left < containerRect.left - 2 || markerRect.bottom > containerRect.bottom + 2) {
+            isOverflowing = true;
+          }
+        }
+
+        if (!isOverflowing) {
+          bestFont = midFont;
+          minFont = midFont;
+        } else {
+          maxFont = midFont;
+        }
+      }
+
+      const finalFont = Math.floor(bestFont * 100) / 100;
+      container.style.fontSize = `${finalFont}rem`;
+      container.style.lineHeight = '1.48';
+
+      if (endMarker) {
+        endMarker.remove();
+      }
+    }
+
+    function autoFitVocabWidth(textarea) {
+      if (!textarea) return;
+
+      if (textarea.clientHeight === 0) {
+        requestAnimationFrame(() => autoFitVocabWidth(textarea));
+        return;
+      }
+
+      const text = textarea.value || '';
+      if (!text.trim()) {
+        textarea.style.width = '16px';
+        return;
+      }
+      
+      const containerHeight = textarea.clientHeight;
+      const fontSize = parseFloat(window.getComputedStyle(textarea).fontSize) || 12.8;
+      const charsPerLine = Math.max(15, Math.floor(containerHeight / fontSize) - 1);
+      
+      const lines = text.split('\n');
+      let lineCount = 0;
+      
+      for (const line of lines) {
+        if (line.length === 0) {
+          lineCount += 1;
+        } else {
+          lineCount += Math.ceil(line.length / charsPerLine);
+        }
+      }
+      
+      const colWidth = fontSize * 1.35;
+      const calculatedWidth = Math.max(16, Math.ceil(lineCount * colWidth) + 2);
+      
+      textarea.style.width = `${calculatedWidth}px`;
+    }
+
+    async function addWordToVocabList(word) {
+      const vocabListEl = document.getElementById('vocab-list');
+      const emptyVocabMsg = document.getElementById('empty-vocab-msg');
+
+      if (!vocabListEl) return;
+      if (emptyVocabMsg) emptyVocabMsg.style.display = 'none';
+
+      const existingItems = Array.from(vocabListEl.querySelectorAll('.vocab-item-v-word'));
+      if (existingItems.some(el => el.textContent === word)) {
+        return;
+      }
+
+      const vocabItem = document.createElement('div');
+      vocabItem.className = 'vocab-item-v';
+      vocabItem.innerHTML = `
+        <div class="vocab-item-v-word">${escapeHtml(word)}</div>
+        <div class="vocab-item-v-desc">検索中...</div>
+        <button class="delete-vocab-btn-v no-print" type="button">✕</button>
+      `;
+      vocabListEl.appendChild(vocabItem);
+
+      const deleteBtn = vocabItem.querySelector('.delete-vocab-btn-v');
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => vocabItem.remove());
+      }
+
+      try {
+        const desc = await fetchWikipediaSummary(word);
+        const descEl = vocabItem.querySelector('.vocab-item-v-desc');
+        if (descEl) {
+          descEl.innerHTML = `<textarea class="vertical-manual-input" placeholder="意味を入力・修正...">${escapeHtml(desc)}</textarea>`;
+          const ta = descEl.querySelector('textarea');
+          ta.addEventListener('input', () => autoFitVocabWidth(ta));
+          autoFitVocabWidth(ta);
+        }
+      } catch (err) {
+        const descEl = vocabItem.querySelector('.vocab-item-v-desc');
+        if (descEl) {
+          descEl.innerHTML = `
+            <div class="no-print" style="margin-left: 4px; flex-shrink: 0;">
+              <button class="btn btn-search-web" type="button" style="font-size: 0.70rem; padding: 4px 2px; background-color: #2563eb; writing-mode: vertical-rl; -webkit-writing-mode: vertical-rl; cursor: pointer; border-radius: 3px;">🔍 Web検索</button>
+            </div>
+            <textarea class="vertical-manual-input" placeholder="Webで調べた意味をここに入力..."></textarea>
+          `;
+          const ta = descEl.querySelector('textarea');
+          ta.addEventListener('input', () => autoFitVocabWidth(ta));
+          
+          const searchBtn = descEl.querySelector('.btn-search-web');
+          if (searchBtn) {
+            searchBtn.addEventListener('click', () => openSearchWindow(word));
+          }
+          
+          autoFitVocabWidth(ta);
+        }
+      }
+    }
+
+    async function fetchWikipediaSummary(word) {
+      const url = `https://ja.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(word)}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Not found');
+      const data = await response.json();
+      
+      if (!data.extract || data.extract.trim() === '' || data.extract.includes('要約情報がありません')) {
+        throw new Error('No summary');
+      }
+      return data.extract;
+    }
+
+    function openSearchWindow(word) {
+      const searchWord = word + ' 意味';
+      const url = `https://www.google.com/search?q=${encodeURIComponent(searchWord)}`;
+      const width = 600;
+      const height = 700;
+      const left = (window.screen.width - width) / 2;
+      const top = (window.screen.height - height) / 2;
+      window.open(url, 'searchWindow', `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`);
+    }
+
+    // --- DOMロード完了時にGASでも確実に動くよう全ボタンへイベント登録 ---
+    document.addEventListener('DOMContentLoaded', () => {
+      const dateEl = document.getElementById('report-date');
+      if (dateEl) {
+        const today = new Date();
+        dateEl.value = `${today.getFullYear()}/${today.getMonth()+1}/${today.getDate()}`;
+      }
+
+      // 1. 各ボタンへのイベント紐付け
+      const linkSankei = document.getElementById('link-sankei');
+      if (linkSankei) linkSankei.addEventListener('click', () => openEditorialWindow('https://www.sankei.com/column/editorial/'));
+
+      const linkYomiuri = document.getElementById('link-yomiuri');
+      if (linkYomiuri) linkYomiuri.addEventListener('click', () => openEditorialWindow('https://www.yomiuri.co.jp/editorial/'));
+
+      const linkAsahi = document.getElementById('link-asahi');
+      if (linkAsahi) linkAsahi.addEventListener('click', () => openEditorialWindow('https://www.asahi.com/news/editorial.html'));
+
+      const linkMainichi = document.getElementById('link-mainichi');
+      if (linkMainichi) linkMainichi.addEventListener('click', () => openEditorialWindow('https://mainichi.jp/editorial/'));
+
+      const btnClearArticle = document.getElementById('btn-clear-article');
+      if (btnClearArticle) btnClearArticle.addEventListener('click', clearArticleAll);
+
+      const toggleMarkerBtn = document.getElementById('toggle-marker-btn');
+      if (toggleMarkerBtn) toggleMarkerBtn.addEventListener('click', toggleMarkerMode);
+
+      const openModalBtn = document.getElementById('open-modal-btn');
+      if (openModalBtn) openModalBtn.addEventListener('click', openModal);
+
+      const btnExportPdf = document.getElementById('btn-export-pdf');
+      if (btnExportPdf) btnExportPdf.addEventListener('click', exportPDF);
+
+      const closeModalBtn = document.getElementById('close-modal-btn');
+      if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+
+      const applyArticleBtn = document.getElementById('apply-article-btn');
+      if (applyArticleBtn) applyArticleBtn.addEventListener('click', applyArticle);
+
+      const manualSearchBtn = document.getElementById('manual-search-btn');
+      if (manualSearchBtn) manualSearchBtn.addEventListener('click', handleManualSearch);
+
+      const btnAiSummary = document.getElementById('btn-ai-summary');
+      if (btnAiSummary) btnAiSummary.addEventListener('click', generateAISummary);
+
+      const modalOverlay = document.getElementById('modal-overlay');
+      if (modalOverlay) modalOverlay.addEventListener('click', handleOverlayClick);
+
+      const modalArticleInput = document.getElementById('modal-article-input');
+      if (modalArticleInput) modalArticleInput.addEventListener('input', updateCharCount);
+
+      // AI要約テキストエリアが空になったらラベルも非表示にする処理
+      const summaryTextarea = document.getElementById('summary-textarea');
+      if (summaryTextarea) {
+        summaryTextarea.addEventListener('input', (e) => {
+          const aiLabel = document.getElementById('ai-summary-label');
+          if (aiLabel && aiLabel.style.display === 'block') {
+            if (e.target.value.trim() === '') {
+              aiLabel.style.display = 'none';
+            }
+          }
+        });
+      }
+
+      // 2. 本文選択＆マーカー用イベント
+      const verticalArticleContainer = document.getElementById('vertical-article-container');
+      if (verticalArticleContainer) {
+        
+        verticalArticleContainer.addEventListener('mouseup', () => {
+          const selection = window.getSelection();
+          const selectedText = selection.toString().trim();
+
+          if (!selectedText || selectedText.length === 0) return;
+
+          if (isMarkerMode) {
+            try {
+              const range = selection.getRangeAt(0);
+              const span = document.createElement('span');
+              span.className = 'marker-highlight';
+              range.surroundContents(span);
+            } catch (err) {
+              alert('段落をまたぐ選択や、すでにマーカーがある部分と重なる選択はできません。');
+            }
+            selection.removeAllRanges();
+          } else {
+            if (selectedText.length > 0 && selectedText.length < 25) {
+              addWordToVocabList(selectedText);
+            }
+          }
+        });
+
+        verticalArticleContainer.addEventListener('click', (e) => {
+          if (isMarkerMode && e.target.classList.contains('marker-highlight')) {
+            const parent = e.target.parentNode;
+            while(e.target.firstChild) {
+              parent.insertBefore(e.target.firstChild, e.target);
+            }
+            parent.removeChild(e.target);
+          }
+        });
+      }
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+      });
+
+      window.addEventListener('resize', () => {
+        fitScreen();
+        adjustArticleFontSize();
+      });
+      
+      fitScreen();
+      adjustArticleFontSize();
+    });
+  </script>
+</body>
+</html>
